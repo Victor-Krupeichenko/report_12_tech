@@ -26,7 +26,6 @@ answer_total = 0
 answer_released = 0
 answer_energy = 0
 
-
 start_populating_database = True  # Запуск предворительного заполнения БД (в бесконечном цикле while)
 
 
@@ -98,9 +97,5 @@ temp = Reports()
 
 # Запуск предворительного заполнения БД в бесконечном цикле while
 while start_populating_database:
-    if start_populating_database:
-        temp.populating_database()
-    else:
-        print(start_populating_database)
-        break
+    temp.populating_database()
 # --- # --- # --- # --- #
