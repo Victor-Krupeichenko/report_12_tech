@@ -4,8 +4,6 @@ database = SqliteDatabase('database.db')  # с какой имено будет 
 
 
 class BaseModel(Model):
-    id = AutoField(unique=True)  # автозаполнение и уникальное
-
     class Meta:
         database = database  # с какой бд будет взаимодействовать
         order_by = 'id'  # по какому полю проводить сортировку
@@ -21,6 +19,7 @@ class Report(BaseModel):
     thousand_kilowatt_hours = IntegerField()  # тыс.квт/ч.
     integer_standard_fuel_ton = IntegerField()  # тыс.квт/ч. в т.у.т (целые)
     fraction_standard_fuel_ton = FloatField()  # тыс.квт/ч. в т.у.т (дробные)
+    total_consumption = IntegerField()  # суммарное потребление тэр
 
     class Meta:
         table_name = 'reports_12_tek'
