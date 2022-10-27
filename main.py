@@ -41,20 +41,56 @@ class Reports:
         """
         Заполнение БД
         """
-        answer = input("Хочешь дополнить БД (ДА - д)/(НЕТ - н):   ").lower()
+        answer = input("\nХочешь дополнить БД (ДА - д)/(НЕТ - н):   ").lower()
         if answer[0] == "д" or answer[0] == "l":
-            # TODO заполнение данных в БД
-            Report.create(
-                total_spend=32, fraction_spend=0.52, released_population=15, fraction_rel_pop=0.15,
-                thousand_kilowatt_hours=777,
-                integer_standard_fuel_ton=3, fraction_standard_fuel_ton=0.03, year=year, month=f"январь - {months}"
-            )
-            # TODO пробовать задавать вопросы в бесконечном цикле для заполнения БД
+            answer_year = input("Год:   ")
+            answer_month = input("Месяц:   ")
+            answer_spend = input("Израсходовано всего в т.у.т.:   ")
+            answer_population = input("Отпущено населению в т.у.т:   ")
+            answer_kilowatt = input("тыс.квт/ч.:   ")
+            answer_consumption = input("Суммарное потребление тэр:   ")
+            answer_db_save = input("\nСохранить эти данные в БД (ДА - д)/(НЕТ - н):   ").lower()
+            if answer_db_save[0] == "д" or answer_db_save[0] == "l":
+                Report(
+                    total_spend=answer_spend, fraction_spend=0, released_population=answer_population,
+                    fraction_rel_pop=0,
+                    thousand_kilowatt_hours=answer_kilowatt,
+                    integer_standard_fuel_ton=0, fraction_standard_fuel_ton=0, year=answer_year,
+                    month=f"январь - {answer_month}", total_consumption=answer_consumption
+                ).save()
+            else:
+                print("Отмена")
         else:
-            print("NO")
             global start_populating_database
             start_populating_database = False
             return start_populating_database
+
+    def fill_report(self):
+        """Заполнение отчета"""
+        answer_fill_report = input("\nПриступаем к заполнению отчёта (ДА - д)/(НЕТ - н):   ").lower()
+        answer_m3 = 0
+        answer_m3_released = 0
+        if answer_fill_report[0] == "д" or answer_fill_report[0] == "l":
+            while True:
+                try:
+                    answer_m3 = float(input(f"Израсходовано всего м3 за {self.months} {self.year}г.:   "))
+                    break
+                except ValueError:
+                    print("Ошибка ввода")
+                    continue
+            while True:
+                try:
+                    answer_m3_released = float(input(f"Отпущено населению м3 за {self.months} {self.year}г.:   "))
+                    break
+                except ValueError:
+                    print("Ошибка ввода")
+                    continue
+            t_s, t_f = self.total_spend_released(answer_m3)
+            r_p, r_f = self.total_spend_released(answer_m3_released)
+            # TODO нужно как-то правильно добавить данные в БД
+            # TODO прежде чем сохранить данные в БД необходимо слажить дробные части т.у.т. полученые из БД
+        else:
+            print("Тогда выходим")
 
     def total_spend_released(self, meters):
         """Переводит м3 в т.у.т.
@@ -80,6 +116,7 @@ class Reports:
         :return: новый заполненый документ word
         """
         doc = DocxTemplate("starting.docx")
+        # TODO получить данные за соответствующий период
         # TODO добавить остольные параметры в context
         context = {
             "month": m,
@@ -93,9 +130,12 @@ class Reports:
 
 # TODO записыва тыс.квт/ч. в колонку нужно как-то правильно
 
-temp = Reports()
 
-# Запуск предворительного заполнения БД в бесконечном цикле while
-while start_populating_database:
-    temp.populating_database()
+if __name__ == "__main__":
+    temp = Reports()
+    # Запуск предворительного заполнения БД в бесконечном цикле while
+    while start_populating_database:
+        temp.populating_database()
+    # Запуск заполнения отчета
+    temp.fill_report()
 # --- # --- # --- # --- #
