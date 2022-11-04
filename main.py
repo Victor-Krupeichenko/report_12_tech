@@ -1,6 +1,7 @@
 import datetime
 from docxtpl import DocxTemplate
 from models import *
+from decimal import Decimal, ROUND_HALF_UP
 
 # Создание БД если таковая отсуствует
 with database:
@@ -42,7 +43,7 @@ class Reports:
         answer_population = input("Отпущено населению в т.у.т:   ")
         answer_kilowatt = input("тыс.квт/ч.:   ")
         answer_consumption = input("Суммарное потребление тэр:   ")
-        return [answer_year, answer_month, answer_spend, answer_population, answer_kilowatt, answer_consumption]
+        return answer_year, answer_month, answer_spend, answer_population, answer_kilowatt, answer_consumption
 
     def db_previously(self):
         """Предварительное заполнение БД"""
@@ -53,9 +54,7 @@ class Reports:
             if save_to_db[0] == "д" or save_to_db[0] == 'l':
                 Report(
                     year=tmp[0], month=f"январь - {tmp[1]}", total_spend=tmp[2], released_population=tmp[3],
-                    thousand_kilowatt_hours=tmp[4], total_consumption=tmp[5], fraction_spend=0, fraction_rel_pop=0,
-                    integer_standard_fuel_ton=0, fraction_standard_fuel_ton=0
-                ).save()
+                    thousand_kilowatt_hours=tmp[4], total_consumption=tmp[5]).save()
         else:
             global start_populating_database
             start_populating_database = False
@@ -64,10 +63,8 @@ class Reports:
     def getting_latest_record(self):
         """Получение последней записи из БД"""
         tmp = Report.select().order_by(Report.id.desc()).get_or_none()
-        tmp_list = [tmp.year, tmp.month, tmp.total_spend, tmp.fraction_spend, tmp.released_population,
-                    tmp.fraction_rel_pop, tmp.thousand_kilowatt_hours,
-                    tmp.integer_standard_fuel_ton,
-                    tmp.fraction_standard_fuel_ton, tmp.total_consumption]
+        tmp_list = [tmp.year, tmp.month, tmp.total_spend, tmp.released_population, tmp.thousand_kilowatt_hours,
+                    tmp.total_consumption]
         return tmp_list
 
     def getting_corresponding_period(self):
@@ -85,20 +82,22 @@ class Reports:
     def total_spend_released(self, meters):
         """Переводит м3 в т.у.т.
         :param meters: m3
-        :return: Возвращает два значения: целою и дробную часть в т.у.т.
+        :return: Возвращает значения т.у.т.
         (Converts m3 to t.c.f.
         Returns two values integer and fractional part in t.c.f.)
         """
-        tmp = str(meters * self.coefficient).split(".")
-        return int(tmp[0]), float(f"0.{tmp[1]}")
+        tmp = str(meters * self.coefficient)
+        obj = Decimal(tmp)
+        return obj.quantize(Decimal("1"), ROUND_HALF_UP)
 
     def total_spend_energy(self, kwt):
         """Переводит тыс.квт/ч. в т.у.т.
         :param kwt:
-        :return: Возвращает два значения: целою и дробную часть в т.у.т.
+        :return: Возвращает  в т.у.т.
         """
-        tmp = str(kwt * 1000 * self.coefficient_energy / 1000).split(".")
-        return int(tmp[0]), float(f"0.{tmp[1]}")
+        tmp = str(kwt * 1000 * self.coefficient_energy / 1000)
+        obj = Decimal(tmp)
+        return obj.quantize(Decimal("1"), ROUND_HALF_UP)
 
     def addition_past_current_data(self, ans_total, rel_total, energy_total):
         """Сложение прошлых и текущих данных"""
@@ -107,11 +106,11 @@ class Reports:
 
         latest_record = self.getting_latest_record()
         total_spend = self.total_spend_released(ans_total)
-        total = total_spend[0] + latest_record[2]  # израсходовано всего (прошлый  + текущи месяц)
+        total = total_spend + latest_record[2]  # израсходовано всего (прошлый  + текущи месяц)
         released_spend = self.total_spend_released(rel_total)
-        released = released_spend[0] + latest_record[4]  # отпущено населению (прошлый + текущий месяц)
+        released = released_spend + latest_record[3]  # отпущено населению (прошлый + текущий месяц)
         spend_energy = self.total_spend_energy(energy_total)
-        energy = energy_total + latest_record[6]  # тыс.квт/ч. (прошлый + текущий месяц)
+        energy = energy_total + latest_record[4]  # тыс.квт/ч. (прошлый + текущий месяц)
         print(total, released, energy, spend_energy)
 
     def docx_save(self, m, ms, get_s, get_p, get_k, get_c):
@@ -142,34 +141,35 @@ if __name__ == "__main__":
     # while start_populating_database:
     #     temp.db_previously()
     # g_c_p = temp.getting_corresponding_period()  # получение данных за соответствующий период прошлого года
-    # temp.docx_save(m=month, ms=months, get_s=g_c_p[0], get_p=g_c_p[1], get_k=g_c_p[2], get_c=g_c_p[3])
+
     answer_total = 0  # Израсходовано всего
     answer_released = 0  # Отпущено населению
     answer_energy = 0  # тыс.квт/ч.
 
-    while True:
-        try:
-            answer_total = float(input(f"Израсходовано всего м3 за {months} {year}г.:   "))
-            break
-        except ValueError:
-            print("Ошибка ввода")
-            continue
+    # while True:
+    #     try:
+    #         answer_total = float(input(f"Израсходовано всего м3 за {months} {year}г.:   "))
+    #         break
+    #     except ValueError:
+    #         print("Ошибка ввода")
+    #         continue
+    #
+    # while True:
+    #     try:
+    #         answer_released = float(input(f"Отпущено населению м3 за {months} {year}г.:   "))
+    #         break
+    #     except ValueError:
+    #         print("Ошибка ввода")
+    #         continue
+    #
+    # while True:
+    #     try:
+    #         answer_energy = int(input(f"тыс.квт/ч. за {months} {year}г.:   "))
+    #         break
+    #     except ValueError:
+    #         print("Ошибка ввода")
+    #         continue
 
-    while True:
-        try:
-            answer_released = float(input(f"Отпущено населению м3 за {months} {year}г.:   "))
-            break
-        except ValueError:
-            print("Ошибка ввода")
-            continue
+    # temp.addition_past_current_data(ans_total=answer_total, rel_total=answer_released, energy_total=answer_energy)
 
-    while True:
-        try:
-            answer_energy = int(input(f"тыс.квт/ч. за {months} {year}г.:   "))
-            break
-        except ValueError:
-            print("Ошибка ввода")
-            continue
-
-    temp.addition_past_current_data(ans_total=answer_total, rel_total=answer_released, energy_total=answer_energy)
 # --- # --- # --- # --- #
