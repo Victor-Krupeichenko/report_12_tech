@@ -35,7 +35,7 @@ class Reports:
         self.day = now.day
         self.months = months_list[now.month - 2]
 
-    def questions_report(self):
+    def questions_pre_filling_database(self):
         """Вопросы для предварительного заполнения БД"""
         answer_year = input("Год:   ")
         answer_month = input("Месяц:   ")
@@ -49,7 +49,7 @@ class Reports:
         """Предварительное заполнение БД"""
         answer_previously = input("\n" + r"Предварительно заполнить БД - ДА(д) \ НЕТ(н):   ").lower()
         if answer_previously[0] == "д" or answer_previously[0] == "l":
-            tmp = self.questions_report()
+            tmp = self.questions_pre_filling_database()
             save_to_db = input("\n" + r"Сохранить эти данные в БД - ДА(д) \ НЕТ(н):   ").lower()
             if save_to_db[0] == "д" or save_to_db[0] == 'l':
                 Report(
@@ -99,6 +99,25 @@ class Reports:
         obj = Decimal(tmp)
         return obj.quantize(Decimal("1"), ROUND_HALF_UP)
 
+    def questions_for_report(self):
+        """вопросы для отчета"""
+        test_dict = {
+            'question_total': 0, 'question_released': 0, 'question_energy': 0,
+        }
+
+        question = [
+            f"Израсходовано всего м3 за {months} {year}г.:   ", f"Отпущено населению м3 за {months} {year}г.:   ",
+            f"тыс.квт/ч. за {months} {year}г.:   "
+        ]
+        for j, key in enumerate(test_dict):
+            while True:
+                try:
+                    test_dict[key] = float(input(question[j]))
+                    break
+                except ValueError:
+                    print("ошибка ввода")
+        return test_dict
+
     def addition_past_current_data(self, ans_total, rel_total, energy_total):
         """Сложение прошлых и текущих данных"""
 
@@ -141,34 +160,7 @@ if __name__ == "__main__":
     # while start_populating_database:
     #     temp.db_previously()
     # g_c_p = temp.getting_corresponding_period()  # получение данных за соответствующий период прошлого года
-
-    answer_total = 0  # Израсходовано всего
-    answer_released = 0  # Отпущено населению
-    answer_energy = 0  # тыс.квт/ч.
-
-    # while True:
-    #     try:
-    #         answer_total = float(input(f"Израсходовано всего м3 за {months} {year}г.:   "))
-    #         break
-    #     except ValueError:
-    #         print("Ошибка ввода")
-    #         continue
-    #
-    # while True:
-    #     try:
-    #         answer_released = float(input(f"Отпущено населению м3 за {months} {year}г.:   "))
-    #         break
-    #     except ValueError:
-    #         print("Ошибка ввода")
-    #         continue
-    #
-    # while True:
-    #     try:
-    #         answer_energy = int(input(f"тыс.квт/ч. за {months} {year}г.:   "))
-    #         break
-    #     except ValueError:
-    #         print("Ошибка ввода")
-    #         continue
+    t_d = temp.questions_for_report()
 
     # temp.addition_past_current_data(ans_total=answer_total, rel_total=answer_released, energy_total=answer_energy)
 
