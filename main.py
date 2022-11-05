@@ -13,14 +13,26 @@ print('loaded...'.upper())
 months_list = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь',
                'декабрь']
 
+rename_month = []
+
 now = datetime.datetime.now()
 year = now.year
 day = now.day
 number_month = now.month
-month = months_list[now.month - 1]  # заполняется месяц в котором сдается отчет
-# TODO менять оканчание месяца
+
+for mon in months_list:
+    rename_month.append(mon.replace("ь", "я"))
+    if mon[-1] == "т":
+        rename_month.append(mon + "а")
+        rename_month.remove(mon)
+    elif mon[-1] == "й":
+        rename_month.append(mon[:-1] + "я")
+        rename_month.remove(mon)
+
+month = rename_month[now.month - 1]  # заполняется месяц в котором сдается отчет
+
 months = months_list[now.month - 2]  # заполняется месяц за который сдается отчет
-print(months)
+# print(months)
 # --- # --- # --- # --- #
 
 
@@ -34,6 +46,7 @@ class Reports:
         self.year = now.year
         self.day = now.day
         self.months = months_list[now.month - 2]
+        self.month = months_list[now.month - 1]
 
     def questions_pre_filling_database(self):
         """Вопросы для предварительного заполнения БД"""
@@ -160,7 +173,7 @@ if __name__ == "__main__":
     # while start_populating_database:
     #     temp.db_previously()
     # g_c_p = temp.getting_corresponding_period()  # получение данных за соответствующий период прошлого года
-    t_d = temp.questions_for_report()
+    # t_d = temp.questions_for_report()
 
     # temp.addition_past_current_data(ans_total=answer_total, rel_total=answer_released, energy_total=answer_energy)
 
