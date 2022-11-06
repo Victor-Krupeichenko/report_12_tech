@@ -2,24 +2,29 @@ import datetime
 from docxtpl import DocxTemplate
 from models import *
 from decimal import Decimal, ROUND_HALF_UP
+import shutil
+
+# Вывод текста по середине консоли
+lines = ["Заполнение отчета 12-ТЭК", "ГП 'Лоевское ПМС'", "Version 1.0(beta)"]
+
+width = shutil.get_terminal_size().columns
+position = (width - max(map(len, lines))) // 2
+for line in lines:  # center
+    print(line.center(width))
+
+print("Разработано:\nКрупейченко В.Г.\n07.11.2022г.")
 
 # Создание БД если таковая отсуствует
 with database:
     database.create_tables([Report])  # создание таблицы
-print('loaded...'.upper())
-# --- # --- # --- # --- #
+print('\ndatabase loaded...'.upper())
 
-# получение даты
 months_list = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь',
                'декабрь']
 
 rename_month = []
 
-now = datetime.datetime.now()
-year = now.year
-day = now.day
-number_month = now.month
-
+# Изменение окончаний у месяцев
 for mon in months_list:
     rename_month.append(mon.replace("ь", "я"))
     if mon[-1] == "т":
@@ -29,24 +34,19 @@ for mon in months_list:
         rename_month.append(mon[:-1] + "я")
         rename_month.remove(mon)
 
+# получение текущей даты
+now = datetime.datetime.now()
+year = now.year
+day = now.day
+number_month = now.month
 month = rename_month[now.month - 1]  # заполняется месяц в котором сдается отчет
-
 months = months_list[now.month - 2]  # заполняется месяц за который сдается отчет
-# print(months)
-# --- # --- # --- # --- #
-
-
-start_populating_database = True  # Запуск предворительного заполнения БД (в бесконечном цикле while)
 
 
 class Reports:
     def __init__(self):
         self.coefficient = 0.2345
         self.coefficient_energy = 0.123
-        self.year = now.year
-        self.day = now.day
-        self.months = months_list[now.month - 2]
-        self.month = months_list[now.month - 1]
 
     def questions_pre_filling_database(self):
         """Вопросы для предварительного заполнения БД"""
@@ -76,25 +76,23 @@ class Reports:
     def getting_latest_record(self):
         """Получение последней записи из БД"""
         tmp = Report.select().order_by(Report.id.desc()).get_or_none()
-        tmp_list = [tmp.year, tmp.month, tmp.total_spend, tmp.released_population, tmp.thousand_kilowatt_hours,
-                    tmp.total_consumption]
+        tmp_list = [tmp.total_spend, tmp.released_population, tmp.thousand_kilowatt_hours, tmp.total_consumption,
+                    tmp.month]
         return tmp_list
 
     def getting_corresponding_period(self):
         """Получение данных за соответствующий период"""
-        tmp = Report.select().where((Report.year == f"{self.year - 1}") & (Report.month == f"январь - {self.months}"))
+        tmp = Report.select().where((Report.year == f"{year - 1}") & (Report.month == f"январь - {months}"))
         if tmp:
             t_list = []
             for i in tmp:
                 t_list.extend([i.total_spend, i.released_population, i.thousand_kilowatt_hours, i.total_consumption])
-            print(t_list[0], t_list[1], t_list[2], t_list[3])
             return t_list
         else:
-            print(f"Данные за период январь - {self.months} {self.year - 1}г. в БД отсутствуют!")
+            return None
 
     def total_spend_released(self, meters):
         """Переводит м3 в т.у.т.
-        :param meters: m3
         :return: Возвращает значения т.у.т.
         (Converts m3 to t.c.f.
         Returns two values integer and fractional part in t.c.f.)
@@ -105,7 +103,6 @@ class Reports:
 
     def total_spend_energy(self, kwt):
         """Переводит тыс.квт/ч. в т.у.т.
-        :param kwt:
         :return: Возвращает  в т.у.т.
         """
         tmp = str(kwt * 1000 * self.coefficient_energy / 1000)
@@ -131,50 +128,81 @@ class Reports:
                     print("ошибка ввода")
         return test_dict
 
-    def addition_past_current_data(self, ans_total, rel_total, energy_total):
-        """Сложение прошлых и текущих данных"""
+    def addition_past_current_data(self, question_spend, question_released, question_energy):
+        """Сложение данных за прошлый(если такой есть) и текущий месяц"""
+        if not months == 'январь':
+            latest_record = self.getting_latest_record()  # получение последней записи из БД
+            total_spend = latest_record[0] + self.total_spend_released(
+                question_spend)  # израсходовано всего
+            total_released = latest_record[1] + self.total_spend_released(question_released)  # отпущено населению
+            total_energy = latest_record[2] + int(question_energy)  # тыс.квт/ч.
+            total_con = self.total_spend_energy(question_energy) + total_spend  # с начала года
+            # Сохранение в БД
+            Report(
+                year=year, month=f"январь - {months}", total_spend=total_spend, released_population=total_released,
+                thousand_kilowatt_hours=total_energy, total_consumption=total_con).save()
+            return total_spend, total_released, total_energy, total_con
+        else:
+            total_spend = self.total_spend_released(question_spend)  # израсходовано всего
+            total_released = self.total_spend_released(question_released)  # отпущено населению
+            total_energy = int(question_energy)  # тыс.квт/ч.
+            total_con = self.total_spend_energy(question_energy) + total_spend  # с начала года
+            # Сохранение в БД
+            Report(
+                year=year, month=f"январь - {months}", total_spend=total_spend, released_population=total_released,
+                thousand_kilowatt_hours=total_energy, total_consumption=total_con).save()
+            return total_spend, total_released, total_energy, total_con
 
-        # TODO добавить проверку если заполняется за январь
-
-        latest_record = self.getting_latest_record()
-        total_spend = self.total_spend_released(ans_total)
-        total = total_spend + latest_record[2]  # израсходовано всего (прошлый  + текущи месяц)
-        released_spend = self.total_spend_released(rel_total)
-        released = released_spend + latest_record[3]  # отпущено населению (прошлый + текущий месяц)
-        spend_energy = self.total_spend_energy(energy_total)
-        energy = energy_total + latest_record[4]  # тыс.квт/ч. (прошлый + текущий месяц)
-        print(total, released, energy, spend_energy)
-
-    def docx_save(self, m, ms, get_s, get_p, get_k, get_c):
+    def docx_save(self, m, period, y, d, ts, tr, te, tc, gts, gtr, gte, gtc, jo, ph, su):
         """
         Запись данных в word.docx
         :return: новый заполненый документ word
         """
         doc = DocxTemplate("starting.docx")
-        # TODO добавить остольные параметры в context
-
         context = {
-            "month": m,
-            "months": ms,
-            "year": self.year,
-            "day": self.day,
-            "get_s": get_s,
-            "get_p": get_p,
-            "get_k": get_k,
-            "get_c": get_c,
+            "m": m,
+            "ms": period,
+            "ye": y,
+            "day": d,
+            "ts": ts,
+            "tr": tr,
+            "te": te,
+            "tc": tc,
+            "gts": gts,
+            "gtr": gtr,
+            "gte": gte,
+            "gtc": gtc,
+            "job": jo,
+            "phone": ph,
+            "surname": su,
         }
         doc.render(context)
-        doc.save(f"№ {number_month - 1} январь - {months} {self.year}.docx")
+        doc.save(f"№ {number_month - 1} январь - {months} {year}.docx")
 
 
 if __name__ == "__main__":
     temp = Reports()
-    # Запуск предворительного заполнения БД в бесконечном цикле while
-    # while start_populating_database:
-    #     temp.db_previously()
-    # g_c_p = temp.getting_corresponding_period()  # получение данных за соответствующий период прошлого года
-    # t_d = temp.questions_for_report()
+    start_populating_database = True  # Запуск предворительного заполнения БД (в бесконечном цикле while)
+    while start_populating_database:
+        temp.db_previously()
+    getting_data = temp.getting_corresponding_period()  # получение данных за соответствующий период прошлого года
+    if getting_data is not None:
+        print(f"Данные за период январь - {months} {year - 1}г. получены!\n")
+    else:
+        print(f"Данные за период январь - {months} {year - 1}г. отсутствуют!\n")
 
-    # temp.addition_past_current_data(ans_total=answer_total, rel_total=answer_released, energy_total=answer_energy)
+    print("Заполните данные (Если новых данных не поступало – то введите 0(ноль)):")
+    questions = temp.questions_for_report()
+    data = temp.addition_past_current_data(question_spend=questions["question_total"],
+                                           question_released=questions["question_released"],
+                                           question_energy=questions["question_energy"])
+    job = input("Должность:   ").capitalize()
+    if input("Номер телефона или Email 1/2:   ") == "1":
+        phone = input("Номер:   ")
+    else:
+        phone = input("Email:   ")
+    surname = input("Инициалы, Фамилия (Например - И.И. Иванов):   ")
 
-# --- # --- # --- # --- #
+    temp.docx_save(m=month, period=months, y=year, d=day, ts=data[0], tr=data[1], te=data[2], tc=data[3],
+                   gts=getting_data[0], gtr=getting_data[1], gte=getting_data[2], gtc=getting_data[3], jo=job,
+                   ph=phone, su=surname)
