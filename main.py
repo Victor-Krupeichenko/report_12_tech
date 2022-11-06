@@ -179,7 +179,8 @@ class Reports:
             "surname": su,
         }
         doc.render(context)
-        doc.save(homedir + f"\Desktop\\12-ТЭК № {number_month - 1} январь - {months} {year}.docx")
+        doc.save(homedir + f"\\Desktop\\№ {number_month - 1} январь - {months} {year}.docx")
+        print("Отчет сохранен на рабочий стол")
 
 
 if __name__ == "__main__":
