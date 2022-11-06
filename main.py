@@ -4,6 +4,7 @@ from models import *
 from decimal import Decimal, ROUND_HALF_UP
 import shutil
 import os
+import time
 
 # Вывод текста по середине консоли
 lines = ["Заполнение отчета 12-ТЭК", "ГП 'Лоевское ПМС'", "Version 1.0(beta)"]
@@ -11,7 +12,7 @@ lines = ["Заполнение отчета 12-ТЭК", "ГП 'Лоевское 
 width = shutil.get_terminal_size().columns
 position = (width - max(map(len, lines))) // 2
 for line in lines:  # center
-    print(line.center(width))
+    print(line.center(width), sep='')
 
 print("Разработано:\nКрупейченко В.Г.\n07.11.2022г.")
 
@@ -204,8 +205,17 @@ if __name__ == "__main__":
         phone = input("Номер:   ")
     else:
         phone = input("Email:   ")
-    surname = input("Инициалы, Фамилия (Например - И.И. Иванов):   ")
+    surname = input("Инициалы, Фамилия (Например - И.И. Иванов):   ").title()
 
     temp.docx_save(m=month, period=months, y=year, d=day, ts=data[0], tr=data[1], te=data[2], tc=data[3],
                    gts=getting_data[0], gtr=getting_data[1], gte=getting_data[2], gtc=getting_data[3], jo=job,
                    ph=phone, su=surname)
+
+    while True:
+        repeat_execution = input(r"Выйти из приложения - ДА(д) \ НЕТ(н):   ").lower()
+        if repeat_execution[0] == "д" or repeat_execution[0] == "l":
+            break
+        else:
+            continue
+    time.sleep(2)
+    print("Выход")
