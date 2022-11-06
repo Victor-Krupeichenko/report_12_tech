@@ -3,6 +3,7 @@ from docxtpl import DocxTemplate
 from models import *
 from decimal import Decimal, ROUND_HALF_UP
 import shutil
+import os
 
 # Вывод текста по середине консоли
 lines = ["Заполнение отчета 12-ТЭК", "ГП 'Лоевское ПМС'", "Version 1.0(beta)"]
@@ -159,6 +160,7 @@ class Reports:
         :return: новый заполненый документ word
         """
         doc = DocxTemplate("starting.docx")
+        homedir = os.path.expanduser('~')
         context = {
             "m": m,
             "ms": period,
@@ -177,7 +179,7 @@ class Reports:
             "surname": su,
         }
         doc.render(context)
-        doc.save(f"№ {number_month - 1} январь - {months} {year}.docx")
+        doc.save(homedir + f"\Desktop\\12-ТЭК № {number_month - 1} январь - {months} {year}.docx")
 
 
 if __name__ == "__main__":
