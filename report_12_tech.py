@@ -132,24 +132,30 @@ class Reports:
 
     def addition_past_current_data(self, question_spend, question_released, question_energy):
         """Сложение данных за прошлый(если такой есть) и текущий месяц"""
+        # проверка существует ли уже такая запись
+        tmp = Report.select().where((Report.year == f"{year}") & (Report.month == f"январь - {months}"))
+        is_record = 0
+        if tmp:
+            for i in tmp:
+                is_record = i.id
+            Report(id=is_record).delete_instance()
         if not months == 'январь':
             latest_record = self.getting_latest_record()  # получение последней записи из БД
             total_spend = latest_record[0] + self.total_spend_released(
                 question_spend)  # израсходовано всего
             total_released = latest_record[1] + self.total_spend_released(question_released)  # отпущено населению
             total_energy = latest_record[2] + int(question_energy)  # тыс.квт/ч.
-            total_con = self.total_spend_energy(question_energy) + total_spend  # с начала года
-            # Сохранение в БД
-            Report(
-                year=year, month=f"январь - {months}", total_spend=total_spend, released_population=total_released,
-                thousand_kilowatt_hours=total_energy, total_consumption=total_con).save()
+            total_con = self.total_spend_energy(question_energy) + self.total_spend_released(
+                question_spend) + latest_record[3]  # с начала года
+            print(total_con)
+            Report(year=year, month=f"январь - {months}", total_spend=total_spend, released_population=total_released,
+                   thousand_kilowatt_hours=total_energy, total_consumption=total_con).save()
             return total_spend, total_released, total_energy, total_con
         else:
             total_spend = self.total_spend_released(question_spend)  # израсходовано всего
             total_released = self.total_spend_released(question_released)  # отпущено населению
             total_energy = int(question_energy)  # тыс.квт/ч.
             total_con = self.total_spend_energy(question_energy) + total_spend  # с начала года
-            # Сохранение в БД
             Report(
                 year=year, month=f"январь - {months}", total_spend=total_spend, released_population=total_released,
                 thousand_kilowatt_hours=total_energy, total_consumption=total_con).save()
@@ -191,9 +197,9 @@ if __name__ == "__main__":
         temp.db_previously()
     getting_data = temp.getting_corresponding_period()  # получение данных за соответствующий период прошлого года
     if getting_data is not None:
-        print(f"Данные за период январь - {months} {year - 1}г. получены!\n")
+        print(f"Данные за период {'январь'.upper()} - {months.upper()} {year - 1}г. получены!\n")
     else:
-        print(f"Данные за период январь - {months} {year - 1}г. отсутствуют!\n")
+        print(f"Данные за период {'январь'.upper()} - {months.upper()} {year - 1}г. отсутствуют!\n")
 
     print("Заполните данные (Если новых данных не поступало – то введите 0(ноль)):")
     questions = temp.questions_for_report()
@@ -201,7 +207,7 @@ if __name__ == "__main__":
                                            question_released=questions["question_released"],
                                            question_energy=questions["question_energy"])
     job = input("Должность:   ").capitalize()
-    if input("Номер телефона или Email 1/2:   ") == "1":
+    if input("Номер телефона или Email (для выбора нажмите 1 или 2):   ") == "1":
         phone = input("Номер:   ")
     else:
         phone = input("Email:   ")
@@ -212,10 +218,10 @@ if __name__ == "__main__":
                    ph=phone, su=surname)
 
     while True:
-        repeat_execution = input(r"Выйти из приложения - ДА(д) \ НЕТ(н):   ").lower()
+        repeat_execution = input(r"Выйти из приложения - ДА(д):   ").lower()
         if repeat_execution[0] == "д" or repeat_execution[0] == "l":
             break
         else:
             continue
-    time.sleep(2)
     print("Выход")
+    time.sleep(2)
